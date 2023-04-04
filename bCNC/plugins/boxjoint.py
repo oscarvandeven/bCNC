@@ -45,15 +45,15 @@ class Tool(Plugin):
         safe = app.cnc["safe"]
         stepz = app.cnc["stepz"]
         diameter = app.cnc["diameter"]
-
-
-        if not name or name == "default":
-            name = "Box joint"
         cutodd = self["CutOdd"]
+
         total_width = self.fromMm("Totalwidth")
         box_width_odd = self.fromMm("BoxWidthOdd")
         box_width_even = self.fromMm("BoxWidthEven")
         margin = self.fromMm("Margin")
+
+        if not name or name == "default":
+            name = f"Box joint-{box_width_odd}-{box_width_even}-{total_width}-" + ('odd' if cutodd else 'even')
 
         # Check parameters
         if box_width_odd > total_width:
@@ -78,7 +78,6 @@ class Tool(Plugin):
         if total_remainder > 0:
             box_widths.append(total_remainder / 2)
             box_widths.insert(0, total_remainder / 2)
-        #total_box_width = total_width - total_remainder
 
         number_of_boxes = len(box_widths)
         number_of_layers = math.ceil(thickness/stepz)
@@ -89,21 +88,17 @@ class Tool(Plugin):
         # Initialize blocks that will contain our gCode
         blocks = []
         block = Block(name)
-
-        #box_start = [total_remainder / 2 + n_box*box_width for n_box in range(number_of_boxes)]
-        #box_end   = [total_remainder / 2 + (n_box + 1) * box_width for n_box in range(number_of_boxes)]
         box_locations = np.cumsum([0]+box_widths)
         margin_x = max(margin, (diameter - total_remainder / 2 if total_remainder > 0 else 0))
         box_locations[0] -= margin_x
         box_locations[-1] += margin_x
-        #box_start = np.cumsum(box_widths)
-        #box_end =
+
         print(box_locations)
         print(box_widths)
         x_start = box_locations[0] + diameter / 2
 
         y = 0
-        for n_z in range(1, number_of_layers):
+        for n_z in range(1, int(number_of_layers)):
             z = max(-n_z*stepz, -thickness)
             block.append(CNC.zsafe())  # <<< Move rapid Z axis to the safe height in Stock Material
             y = y_low
@@ -111,24 +106,25 @@ class Tool(Plugin):
             block.append(CNC.grapid(x, y))  # <<< Move rapid to X and Y coordinate
             block.append(CNC.zenter(z))
 
-            for n_box in range(cutodd == False, number_of_boxes, 2):
-                x = box_locations[n_box]
+            for n_box in range(int(cutodd == False), int(number_of_boxes), 2):
+                x = box_locations[n_box] + diameter / 2
                 block.append(CNC.grapid(x, y))
                 box_width = box_locations[n_box+1] - box_locations[n_box]
-                number_of_lines = math.ceil((box_width / diameter - 1) / (1 - stepover / 100))
-                x_increment = (box_width - diameter) / number_of_lines
-                for n_line in range(number_of_lines):
+                number_of_lines = math.ceil((box_width / diameter - 1) / (1 - stepover / 100))#TODO: incorrect, 7 mm box & 6 mm mill gives 1 line
+                if number_of_lines > 1:
+                    x_increment = (box_width - diameter) / (number_of_lines - 1)
+                else:
+                    x_increment = 0
+                for n_line in range(int(number_of_lines)):
                     if y == y_low:
                         y = y_high
                     else:
                         y = y_low
-                    #block.append(CNC.gline(x, y))
                     block.append(CNC.glinev(1, [x, y, z], feed))
 
                     if n_line < number_of_lines - 1:
                         x += x_increment
-                        #block.append(CNC.gline(x, y))
-                        block.append(CNC.glinev(1, [x, y, z], feed))
+                        block.append(CNC.grapid(x, y))
         blocks.append(block)
         active = app.activeBlock()
         if active == 0:
