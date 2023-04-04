@@ -4,7 +4,7 @@
 # Date:      2-Jan-2017
 
 import math
-
+import numpy as np
 from CNC import CNC, Block
 from ToolsPage import Plugin
 
@@ -29,7 +29,8 @@ class Tool(Plugin):
             ("name", "db", "", _("Name")),
             ("Margin", "mm", 2, _("Margin")),
             ("Totalwidth", "mm", 100, _("Total width")),
-            ("BoxWidth", "mm", 20, _("Single box width")),
+            ("BoxWidthOdd", "mm", 20, _("Single odd box width")),
+            ("BoxWidthEven", "mm", 20, _("Single even box width")),
             ("CutOdd", "bool", True, _("Cut the odd boxes")),
         ]
         self.buttons.append("exe")
@@ -50,18 +51,36 @@ class Tool(Plugin):
             name = "Box joint"
         cutodd = self["CutOdd"]
         total_width = self.fromMm("Totalwidth")
-        box_width = self.fromMm("BoxWidth")
+        box_width_odd = self.fromMm("BoxWidthOdd")
+        box_width_even = self.fromMm("BoxWidthEven")
         margin = self.fromMm("Margin")
 
         # Check parameters
-        if box_width > total_width:
+        if box_width_odd > total_width:
             app.setStatus(_("Boxjoint abort: box is smaller than total"))
             return
+        if box_width_odd < diameter or box_width_even < diameter:
+            app.setStatus(_("Boxjoint abort: box is smaller than tool"))
+            return
+        total_box_width = 0
+        box_widths = []
+        while total_box_width < total_width:
+            odd = len(box_widths) % 2 == 0
+            if odd:
+                new_box_width = box_width_odd
+            else:
+                new_box_width = box_width_even
+            if total_box_width + new_box_width <= total_width:
+                box_widths.append(new_box_width)
+            total_box_width += new_box_width
+        total_box_width = np.sum(box_widths)
+        total_remainder = total_width - total_box_width
+        if total_remainder > 0:
+            box_widths.append(total_remainder / 2)
+            box_widths.insert(0, total_remainder / 2)
+        #total_box_width = total_width - total_remainder
 
-        total_remainder = total_width % box_width
-        total_box_width = total_width - total_remainder
-        number_of_lines = math.ceil((box_width/diameter-1)/(1-stepover/100))
-        number_of_boxes = round(total_box_width/box_width)
+        number_of_boxes = len(box_widths)
         number_of_layers = math.ceil(thickness/stepz)
 
         y_low = -diameter/2 - margin
@@ -71,12 +90,18 @@ class Tool(Plugin):
         blocks = []
         block = Block(name)
 
-        box_start = [total_remainder / 2 + n_box*box_width for n_box in range(number_of_boxes)]
-        box_end   = [total_remainder / 2 + (n_box + 1) * box_width for n_box in range(number_of_boxes)]
-        print(box_start)
-        print(box_end)
-        x_start = total_remainder / 2 + diameter / 2
-        x_increment = (box_width - diameter)/number_of_lines
+        #box_start = [total_remainder / 2 + n_box*box_width for n_box in range(number_of_boxes)]
+        #box_end   = [total_remainder / 2 + (n_box + 1) * box_width for n_box in range(number_of_boxes)]
+        box_locations = np.cumsum([0]+box_widths)
+        margin_x = max(margin, (diameter - total_remainder / 2 if total_remainder > 0 else 0))
+        box_locations[0] -= margin_x
+        box_locations[-1] += margin_x
+        #box_start = np.cumsum(box_widths)
+        #box_end =
+        print(box_locations)
+        print(box_widths)
+        x_start = box_locations[0] + diameter / 2
+
         y = 0
         for n_z in range(1, number_of_layers):
             z = max(-n_z*stepz, -thickness)
@@ -87,10 +112,11 @@ class Tool(Plugin):
             block.append(CNC.zenter(z))
 
             for n_box in range(cutodd == False, number_of_boxes, 2):
-                x = box_start[n_box]
+                x = box_locations[n_box]
                 block.append(CNC.grapid(x, y))
-
-
+                box_width = box_locations[n_box+1] - box_locations[n_box]
+                number_of_lines = math.ceil((box_width / diameter - 1) / (1 - stepover / 100))
+                x_increment = (box_width - diameter) / number_of_lines
                 for n_line in range(number_of_lines):
                     if y == y_low:
                         y = y_high
@@ -103,8 +129,6 @@ class Tool(Plugin):
                         x += x_increment
                         #block.append(CNC.gline(x, y))
                         block.append(CNC.glinev(1, [x, y, z], feed))
-
-
         blocks.append(block)
         active = app.activeBlock()
         if active == 0:
