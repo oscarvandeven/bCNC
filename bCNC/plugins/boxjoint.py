@@ -104,8 +104,8 @@ class Tool(Plugin):
         x_start = box_locations[0] + diameter / 2
 
         y = 0
-        for n_z in range(1, int(number_of_layers)):
-            z = max(-n_z*stepz, -thickness)
+        for n_z in range(0, int(number_of_layers)):
+            z = max(-(n_z+1)*stepz, -thickness)
             block.append(CNC.zsafe())  # <<< Move rapid Z axis to the safe height in Stock Material
             y = y_low
             x = x_start
