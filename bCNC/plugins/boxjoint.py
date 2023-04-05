@@ -23,8 +23,8 @@ class Tool(Plugin):
 
     def __init__(self, master):
         Plugin.__init__(self, master, "Box-joint")
-        self.icon = "zigzag"
-        self.group = "Generator"
+        self.icon = "cut"
+        self.group = "CAM_Core+"#"Generator"
         self.variables = [
             ("name", "db", "", _("Name")),
             ("Margin", "mm", 2, _("Margin")),
@@ -34,6 +34,9 @@ class Tool(Plugin):
             ("CutOdd", "bool", True, _("Cut the odd boxes")),
         ]
         self.buttons.append("exe")
+        self.help = """This plugin mills box joints on the side of a panel:
+#boxjoint
+        """
 
     # ----------------------------------------------------------------------
     def execute(self, app):
@@ -76,8 +79,11 @@ class Tool(Plugin):
         total_box_width = np.sum(box_widths)
         total_remainder = total_width - total_box_width
         if total_remainder > 0:
+            # If there is space left, an additional partial box is added to the front and the back
             box_widths.append(total_remainder / 2)
             box_widths.insert(0, total_remainder / 2)
+            # This causes odd and even to swap, this compensated this unwanted behaviour
+            cutodd = not cutodd
 
         number_of_boxes = len(box_widths)
         number_of_layers = math.ceil(thickness/stepz)
