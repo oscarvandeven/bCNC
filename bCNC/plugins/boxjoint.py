@@ -16,7 +16,7 @@ __name__ = _("Box joint")
 __version__ = "0.0.1"
 
 # =============================================================================
-# Create a ZigZag path
+# Create a box joint by milling away material from the edge of a board
 # =============================================================================
 class Tool(Plugin):
     __doc__ = _("Create a box joint path")
@@ -110,7 +110,7 @@ class Tool(Plugin):
                 x = box_locations[n_box] + diameter / 2
                 block.append(CNC.grapid(x, y))
                 box_width = box_locations[n_box+1] - box_locations[n_box]
-                number_of_lines = math.ceil((box_width / diameter - 1) / (1 - stepover / 100))#TODO: incorrect, 7 mm box & 6 mm mill gives 1 line
+                number_of_lines = 1 + math.ceil((box_width - diameter) / (diameter * (1 - stepover / 100)))
                 if number_of_lines > 1:
                     x_increment = (box_width - diameter) / (number_of_lines - 1)
                 else:
