@@ -28,6 +28,7 @@ class Tool(Plugin):
         self.variables = [
             ("name", "db", "", _("Name")),
             ("Margin", "mm", 2, _("Margin")),
+            ("Fit", "mm", 0, _("Fit tweak")),
             ("Totalwidth", "mm", 100, _("Total width")),
             ("BoxWidthOdd", "mm", 20, _("Single odd box width")),
             ("BoxWidthEven", "mm", 20, _("Single even box width")),
@@ -37,6 +38,8 @@ class Tool(Plugin):
         self.buttons.append("exe")
         self.help = """This plugin mills box joints on the side of a panel:
 #boxjoint
+Fit tweak: makes all cuts wider (if positive) to loosen the fit. A negative value tightens the fit.
+
         """
 
     # ----------------------------------------------------------------------
@@ -55,19 +58,20 @@ class Tool(Plugin):
         odd_cuts = [o for o in odd_cuts if o is not None]
         print(odd_cuts)
         total_width = self.fromMm("Totalwidth")
-        box_width_odd = self.fromMm("BoxWidthOdd")
-        box_width_even = self.fromMm("BoxWidthEven")
+        box_width_odd_setting = self.fromMm("BoxWidthOdd")
+        box_width_even_setting = self.fromMm("BoxWidthEven")
+        fit = self.fromMm("Fit")
         margin = self.fromMm("Margin")
         blocks = []
         for cutodd in odd_cuts:
             if not name or name == "default":
-                new_name = f"Box joint-{box_width_odd}-{box_width_even}-{total_width}-" + ('odd' if cutodd else 'even')
+                new_name = f"Box joint-{box_width_odd_setting}-{box_width_even_setting}-{total_width}-{fit}-" + ('odd' if cutodd else 'even')
 
             # Check parameters
-            if box_width_odd > total_width:
+            if box_width_odd_setting + fit > total_width:
                 app.setStatus(_("Boxjoint abort: box is smaller than total"))
                 return
-            if box_width_odd < diameter or box_width_even < diameter:
+            if box_width_odd_setting - fit < diameter or box_width_even_setting - fit < diameter:
                 app.setStatus(_("Boxjoint abort: box is smaller than tool"))
                 return
             total_box_width = 0
@@ -75,9 +79,9 @@ class Tool(Plugin):
             while total_box_width < total_width:
                 odd = len(box_widths) % 2 == 0
                 if odd:
-                    new_box_width = box_width_odd
+                    new_box_width = box_width_even_setting
                 else:
-                    new_box_width = box_width_even
+                    new_box_width = box_width_even_setting
                 if total_box_width + new_box_width <= total_width:
                     box_widths.append(new_box_width)
                 total_box_width += new_box_width
@@ -96,6 +100,7 @@ class Tool(Plugin):
             y_low = -diameter/2 - margin
             y_high = thickness + diameter/2 + margin
 
+
             # Initialize blocks that will contain our gCode
 
             block = Block(new_name)
@@ -103,6 +108,12 @@ class Tool(Plugin):
             margin_x = max(margin, (diameter - total_remainder / 2 if total_remainder > 0 else 0))
             box_locations[0] -= margin_x
             box_locations[-1] += margin_x
+
+            #counter_offset = 0 if cutodd else 1
+            number_of_coordinates = len(box_locations)
+            fit_offset = [fit if n % 2 == int(cutodd) else -fit for n in range(number_of_coordinates)]
+            box_locations = [box_locations[n] + fit_offset[n] for n in range(number_of_coordinates)]
+
 
             print(box_locations)
             print(box_widths)
