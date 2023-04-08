@@ -24,7 +24,7 @@ class Tool(Plugin):
     def __init__(self, master):
         Plugin.__init__(self, master, "Box-joint")
         self.icon = "cut"
-        self.group = "CAM_Core+"#"Generator"
+        self.group = "CAM_Core"#"Generator"
         self.variables = [
             ("name", "db", "", _("Name")),
             ("Margin", "mm", 2, _("Margin")),
@@ -126,7 +126,12 @@ class Tool(Plugin):
                         y = y_high
                     else:
                         y = y_low
-                    block.append(CNC.glinev(1, [x, y, z], feed))
+                    # use a lower feedrate at the initial cut (where it engages the full width of the tool instead of 1 - stepover):
+                    if n_line==0:
+                        this_feed = feed * (1 - stepover / 100)
+                    else:
+                        this_feed = feed
+                    block.append(CNC.glinev(1, [x, y, z], this_feed))
 
                     if n_line < number_of_lines - 1:
                         x += x_increment
