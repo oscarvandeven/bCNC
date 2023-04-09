@@ -9,7 +9,7 @@
    id="svg951"
    inkscape:version="1.1.1 (3bf5ae0d25, 2021-09-20)"
    sodipodi:docname="boxjoint_ico16.svg"
-   inkscape:export-filename="boxjoint_ico64.png"
+   inkscape:export-filename="boxjoint_ico16.png"
    inkscape:export-xdpi="96"
    inkscape:export-ydpi="96"
    xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
@@ -28,8 +28,8 @@
      showgrid="false"
      units="px"
      inkscape:zoom="6.4070146"
-     inkscape:cx="73.12298"
-     inkscape:cy="52.208403"
+     inkscape:cx="81.8634"
+     inkscape:cy="53.925271"
      inkscape:window-width="2560"
      inkscape:window-height="1361"
      inkscape:window-x="-9"
@@ -56,7 +56,7 @@
        transform="translate(-62.291135,-120.04436)">
       <g
          id="g3837"
-         transform="matrix(1.4606859,0,0,1.4606859,-28.970566,-58.540304)">
+         transform="matrix(1.6077984,0,0,1.6077984,-38.185384,-76.561647)">
         <path
            style="fill:#afafc8;fill-opacity:1;stroke:#000000;stroke-width:0.300001;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
            d="m 92.337443,122.65042 h -1.284764 v 3.2006 h -3.211908 l 3e-6,-3.2006 h -6.423817 v 3.2006 h -3.211906 v -3.2006 h -6.423815 v 3.2006 h -3.211907 v -3.2006 h -1.284763 v 21.12396 h 25.052877 z"

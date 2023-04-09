@@ -23,7 +23,7 @@ class Tool(Plugin):
 
     def __init__(self, master):
         Plugin.__init__(self, master, "Box-joint")
-        self.icon = "cut"
+        self.icon = "boxjoint"
         self.group = "CAM_Core"#"Generator"
         self.variables = [
             ("name", "db", "", _("Name")),
